@@ -1,13 +1,23 @@
 
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en">
-<head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>St. Paul’s — November 2025 Newsletter</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Lora:wght@400;600;700&display=swap" rel="stylesheet">
-</head>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>St. Paul’s — November 2025 Newsletter</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Lora:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+      .anchor-word {
+        color: #B3862C;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        display: inline-block;
+        margin-right: 4px;
+      }
+    </style>
+  </head>
 <body style="margin:0; padding:0; background-color:#F8FAFC; color:#334155; font-family:'Inter', Arial, sans-serif;">
   <!-- Outer wrapper -->
   <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#F8FAFC;">
@@ -445,10 +455,57 @@
         </td>
       </tr>
     </table>
-  </td>
-</tr>
+    </td>
+  </tr>
 
-</body>
-</html>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      var paragraphs = document.querySelectorAll('p');
+      paragraphs.forEach(function (paragraph) {
+        if (paragraph.querySelector('.anchor-word')) {
+          return;
+        }
+
+        var textFilter = window.NodeFilter ? NodeFilter.SHOW_TEXT : 4;
+        var walker = document.createTreeWalker(paragraph, textFilter, null);
+        var textNode;
+
+        while ((textNode = walker.nextNode())) {
+          var textContent = textNode.textContent;
+          if (!textContent || !textContent.trim()) {
+            continue;
+          }
+
+          var match = textContent.match(/^(\s*)(\S+)(.*)$/s);
+          if (!match) {
+            continue;
+          }
+
+          var leading = match[1] || '';
+          var word = match[2];
+          var remainder = match[3] || '';
+
+          var fragment = document.createDocumentFragment();
+          if (leading) {
+            fragment.appendChild(document.createTextNode(leading));
+          }
+
+          var anchorSpan = document.createElement('span');
+          anchorSpan.className = 'anchor-word';
+          anchorSpan.textContent = word;
+          fragment.appendChild(anchorSpan);
+
+          if (remainder) {
+            fragment.appendChild(document.createTextNode(remainder));
+          }
+
+          textNode.parentNode.replaceChild(fragment, textNode);
+          break;
+        }
+      });
+    });
+  </script>
+  </body>
+  </html>
 
     
