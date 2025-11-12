@@ -15,6 +15,9 @@
         text-transform: uppercase;
         display: inline-block;
         margin-right: 4px;
+        padding: 0 4px;
+        border-radius: 4px;
+        background: rgba(179, 134, 44, 0.12);
       }
     </style>
   </head>
@@ -481,48 +484,127 @@
 
   <script>
     document.addEventListener('DOMContentLoaded', function () {
-      var paragraphs = document.querySelectorAll('p');
-      paragraphs.forEach(function (paragraph) {
-        if (paragraph.querySelector('.anchor-word')) {
-          return;
+      var keywords = [
+        'community', 'faith', 'mission', 'worship', 'vision', 'ministry',
+        'service', 'gratitude', 'support', 'care', 'jesus', 'christ',
+        'volunteer', 'outreach', 'family', 'celebration', 'prayer', 'hope',
+        'love', 'friendship', 'generosity', 'neighbourhood', 'kindness',
+        'meals', 'wheels', 'music'
+      ];
+      var MAX_HIGHLIGHTS = 3;
+      var FALLBACK_LENGTH = 6;
+
+      function escapeRegExp(text) {
+        return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      }
+
+      function wrapWord(paragraph, word) {
+        if (!word) {
+          return false;
         }
 
+        var regex = new RegExp('\\b' + escapeRegExp(word) + '\\b', 'i');
         var textFilter = window.NodeFilter ? NodeFilter.SHOW_TEXT : 4;
         var walker = document.createTreeWalker(paragraph, textFilter, null);
-        var textNode;
+        var node;
 
-        while ((textNode = walker.nextNode())) {
-          var textContent = textNode.textContent;
-          if (!textContent || !textContent.trim()) {
+        while ((node = walker.nextNode())) {
+          var content = node.textContent;
+          if (!content || !content.trim()) {
             continue;
           }
 
-          var match = textContent.match(/^(\s*)(\S+)(.*)$/s);
+          var match = content.match(regex);
           if (!match) {
             continue;
           }
 
-          var leading = match[1] || '';
-          var word = match[2];
-          var remainder = match[3] || '';
-
-          var fragment = document.createDocumentFragment();
-          if (leading) {
-            fragment.appendChild(document.createTextNode(leading));
-          }
-
-          var anchorSpan = document.createElement('span');
-          anchorSpan.className = 'anchor-word';
-          anchorSpan.textContent = word;
-          fragment.appendChild(anchorSpan);
-
-          if (remainder) {
-            fragment.appendChild(document.createTextNode(remainder));
-          }
-
-          textNode.parentNode.replaceChild(fragment, textNode);
-          break;
+          var range = document.createRange();
+          range.setStart(node, match.index);
+          range.setEnd(node, match.index + match[0].length);
+          var span = document.createElement('span');
+          span.className = 'anchor-word';
+          range.surroundContents(span);
+          return true;
         }
+
+        return false;
+      }
+
+      function collectWords(text) {
+        var results = [];
+        if (!text) {
+          return results;
+        }
+
+        var regex = /[A-Za-zÀ-ÖØ-öø-ÿ'’]+/g;
+        var match;
+        while ((match = regex.exec(text)) !== null) {
+          var raw = match[0];
+          var normalized = raw
+            .toLowerCase()
+            .replace(/[’']/g, '')
+            .replace(/[^a-zà-öø-ÿ]/g, '');
+          if (!normalized) {
+            continue;
+          }
+          results.push({ raw: raw, normalized: normalized, length: normalized.length });
+        }
+        return results;
+      }
+
+      var paragraphs = document.querySelectorAll('p');
+      paragraphs.forEach(function (paragraph) {
+        var currentAnchors = paragraph.querySelectorAll('.anchor-word');
+        var highlightedWords = new Set();
+        currentAnchors.forEach(function (span) {
+          highlightedWords.add(span.textContent.trim().toLowerCase());
+        });
+
+        var text = paragraph.textContent || '';
+        var words = collectWords(text);
+        if (!words.length) {
+          return;
+        }
+
+        var selections = [];
+
+        words.forEach(function (word) {
+          if (
+            selections.length < MAX_HIGHLIGHTS &&
+            keywords.indexOf(word.normalized) !== -1 &&
+            !highlightedWords.has(word.normalized)
+          ) {
+            selections.push(word.raw);
+            highlightedWords.add(word.normalized);
+          }
+        });
+
+        if (selections.length < MAX_HIGHLIGHTS) {
+          var fallback = words
+            .filter(function (word) {
+              return word.length >= FALLBACK_LENGTH && !highlightedWords.has(word.normalized);
+            })
+            .sort(function (a, b) {
+              return b.length - a.length;
+            });
+
+          fallback.forEach(function (word) {
+            if (selections.length >= MAX_HIGHLIGHTS) {
+              return;
+            }
+            selections.push(word.raw);
+            highlightedWords.add(word.normalized);
+          });
+        }
+
+        if (!selections.length) {
+          selections.push(words[0].raw);
+        }
+
+        selections.forEach(function (word) {
+          wrapWord(paragraph, word);
+        });
       });
     });
   </script>
